@@ -22,7 +22,8 @@ object GrapheneBuild extends Build {
     .settings(libraryDependencies ++=
       compile(akka: _*) ++
       compile(spray: _*) ++
-      compile(pegdown) ++
+      compile(pegdown, subset, jodaTime) ++
+      provided(jodaConvert) ++
       test(scalatest, akkaTestKit)
     )
 

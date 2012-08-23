@@ -39,6 +39,8 @@ object Dependencies {
   // General
   val subset      = "com.osinka.subset" %% "subset"          % "1.0.0"
   val pegdown     = "org.pegdown"       %  "pegdown"         % "1.1.0"
+  val jodaTime    = "joda-time"         %  "joda-time"       % "2.1"
+  val jodaConvert = "org.joda"          %  "joda-convert"    % "1.2"
 
   // Dependency sets
   val akka = Seq(akkaActor, akkaRemote, akkaSlf4j)
