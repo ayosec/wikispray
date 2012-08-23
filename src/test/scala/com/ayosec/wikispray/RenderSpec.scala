@@ -1,0 +1,40 @@
+
+package com.ayosec.wikispray
+
+import org.scalatest._
+import akka.testkit._
+import akka.actor._
+
+/*
+import cc.spray.test._
+import http._
+import HttpMethods._
+import StatusCodes._
+ */
+
+class RenderSpec(_system: ActorSystem)
+  extends TestKit(_system)
+  with ImplicitSender
+  with WordSpec
+  with MustMatchers
+  with BeforeAndAfterAll
+{
+
+  def this() = this(ActorSystem("RenderSpec"))
+
+  override def afterAll {
+    system.shutdown()
+  }
+
+  import render._
+
+  "A Render actor" must {
+    "return HTML source" in {
+
+      val render = system.actorOf(Props[RenderActor])
+      render ! MarkdownSource("This *is* a **test**")
+      expectMsg(HTMLContent("<p>This <em>is</em> a <strong>test</strong></p>"))
+    }
+
+  }
+}
