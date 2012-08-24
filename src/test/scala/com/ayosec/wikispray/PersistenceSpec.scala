@@ -1,5 +1,6 @@
 package com.ayosec.wikispray
 
+import persistence._
 import org.scalatest._
 import akka.testkit._
 import akka.actor._
@@ -17,19 +18,15 @@ class PersistenceSpec (_system: ActorSystem) extends TestKit(_system)
   with BeforeAndAfterEach
 {
 
+
   def this() = this(ActorSystem("PersistenceSpec"))
 
   override def afterAll { system.shutdown() }
 
   implicit val timeout = Timeout(3 seconds)
 
-  lazy val mongo = new com.mongodb.Mongo        // TODO create persistence.DataStore
-  lazy val db = mongo.getDB("wikispray-test")
-
   // Truncate pages collections before every test
-  override def beforeEach { db.getCollection("pages").drop() }
-
-  import persistence._
+  override def beforeEach { Mongo.collection("pages").drop() }
 
   def persistenceActor = TestActorRef[PersistenceActor]
 

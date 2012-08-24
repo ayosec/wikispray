@@ -28,21 +28,18 @@ class PersistenceActor extends Actor {
   final val content = "content".fieldOf[String]
   final val date = "date".fieldOf[DateTime]
 
-  lazy val mongo = new com.mongodb.Mongo;
-  lazy val db = mongo.getDB("wikispray-test");
-
   def save(page: Page) = {
     val dbobject: DBObject =
       summary(page.summary) ~
       content(page.content) ~
       date(page.date)
 
-    db.getCollection("pages").insert(dbobject)
+    Mongo.collection("pages").insert(dbobject)
     dbobject.get("_id").asInstanceOf[ObjectId]
   }
 
   def load(pageId: ObjectId) = {
-    db.getCollection("pages").findOne((id === pageId) :DBObject) match {
+    Mongo.collection("pages").findOne((id === pageId) :DBObject) match {
       case null => None
       case summary(s) ~ content(c) ~ date(d) => Some(Page(s, c, d))
       case _ => None
