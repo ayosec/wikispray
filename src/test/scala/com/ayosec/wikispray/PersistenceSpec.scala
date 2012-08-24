@@ -13,10 +13,13 @@ class PersistenceSpec (_system: ActorSystem) extends TestKit(_system)
   with ImplicitSender
   with WordSpec
   with MustMatchers
+  with BeforeAndAfterAll
   with BeforeAndAfterEach
 {
 
   def this() = this(ActorSystem("PersistenceSpec"))
+
+  override def afterAll { system.shutdown() }
 
   implicit val timeout = Timeout(3 seconds)
 

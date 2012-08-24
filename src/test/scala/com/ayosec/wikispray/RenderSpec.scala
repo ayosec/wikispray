@@ -14,16 +14,14 @@ class RenderSpec(_system: ActorSystem) extends TestKit(_system)
 
   def this() = this(ActorSystem("RenderSpec"))
 
-  override def afterAll {
-    system.shutdown()
-  }
+  override def afterAll { system.shutdown() }
 
   import render._
 
   "A Render actor" must {
     "return HTML source" in {
 
-      val render = system.actorOf(Props[RenderActor])
+      val render = TestActorRef[RenderActor]
       render ! MarkdownSource("This *is* a **test**")
       expectMsg(HTMLContent("<p>This <em>is</em> a <strong>test</strong></p>"))
     }
