@@ -31,9 +31,9 @@ object Dependencies {
   // Spray
   val sprayServer = "cc.spray"          %  "spray-server"    % V.spray
   val sprayCan    = "cc.spray"          %  "spray-can"       % V.spray
+  val sprayJson   = "cc.spray"          %% "spray-json"      % "1.1.1"
 
   // Tests
-  val specs2      = "org.specs2"        %% "specs2"          % "1.7.1"
   val scalatest   = "org.scalatest"     %% "scalatest"       % "2.0.M3"
 
   // General
@@ -44,5 +44,5 @@ object Dependencies {
 
   // Dependency sets
   val akka = Seq(akkaActor, akkaRemote, akkaSlf4j)
-  val spray = Seq(sprayServer, sprayCan)
+  val spray = Seq(sprayServer, sprayCan, sprayJson)
 }

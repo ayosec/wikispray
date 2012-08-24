@@ -7,7 +7,7 @@ object GrapheneBuild extends Build {
   lazy val basicSettings = seq(
     version               := "0.1",
     homepage              := Some(new URL("http://ayosec.com/wikispray")),
-    organization          := "com.graphenedb",
+    organization          := "com.ayosec",
     organizationHomepage  := Some(new URL("http://aentos.com")),
     description           := "Example application for Spray",
     startYear             := Some(2012),
@@ -15,7 +15,7 @@ object GrapheneBuild extends Build {
     scalaVersion          := "2.9.1",
     resolvers             ++= Dependencies.resolutionRepos,
     scalacOptions         := Seq("-deprecation", "-encoding", "utf8")
-  ) ++ com.github.retronym.SbtOneJar.oneJarSettings
+  )
 
   lazy val grapheneApi = Project("wikispray", file("."))
     .settings(basicSettings: _*)

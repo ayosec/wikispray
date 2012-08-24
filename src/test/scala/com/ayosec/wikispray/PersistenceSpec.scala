@@ -5,7 +5,6 @@ import org.scalatest._
 import akka.testkit._
 import akka.actor._
 import akka.util.Timeout
-import akka.dispatch.Await
 import akka.util.duration._
 import org.bson.types.ObjectId
 import org.joda.time.DateTime
@@ -25,7 +24,7 @@ class PersistenceSpec (_system: ActorSystem) extends TestKit(_system)
 
   implicit val timeout = Timeout(3 seconds)
 
-  def persistenceActor = TestActorRef[PersistenceActor]
+  val persistenceActor = TestActorRef[PersistenceActor]
 
   // ====================================================
   // Specs
