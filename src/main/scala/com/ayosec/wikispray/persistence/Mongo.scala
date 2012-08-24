@@ -2,9 +2,12 @@ package com.ayosec.wikispray.persistence
 
 object Mongo {
 
-  lazy val connection = new com.mongodb.Mongo;
-  lazy val db = connection.getDB("wikispray-test");
+  private[this] var _db :com.mongodb.DB = _
 
-  def collection(name: String) = db.getCollection(name)
+  def connect(uri: String) = synchronized { _db = new com.mongodb.MongoURI(uri).connectDB() }
+
+  def db = _db
+
+  def collection(name: String) = _db.getCollection(name)
 
 }

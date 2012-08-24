@@ -16,17 +16,14 @@ class PersistenceSpec (_system: ActorSystem) extends TestKit(_system)
   with MustMatchers
   with BeforeAndAfterAll
   with BeforeAndAfterEach
+  with TestMongo
 {
-
 
   def this() = this(ActorSystem("PersistenceSpec"))
 
   override def afterAll { system.shutdown() }
 
   implicit val timeout = Timeout(3 seconds)
-
-  // Truncate pages collections before every test
-  override def beforeEach { Mongo.collection("pages").drop() }
 
   def persistenceActor = TestActorRef[PersistenceActor]
 
