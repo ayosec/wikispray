@@ -60,7 +60,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     "not be able to create a page" in {
       val result = request(POST, "/pages/" + newPageId)
       result.handled must be (false)
-      result.rejections.head must beOfType(classOf[AuthenticationRequiredRejection])
+      result.rejections.head must beOfType[AuthenticationRequiredRejection]
     }
   }
 
