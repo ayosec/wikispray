@@ -9,7 +9,7 @@ import org.bson.types.ObjectId
 case class Connect(uri: String)
 case class DropCollection(collection: String)
 case class InsertDocument(collection: String, document: DBObject)
-case class LoadDocument(collection: String, query: DBObject)
+case class LoadDocument(collection: String, query: Option[DBObject] = None, sort: Option[DBObject] = None)
 
 // Responses
 case class Connected(uri: String)
@@ -17,7 +17,7 @@ case class CollectionDropped(collection: String)
 
 case class Inserted(id: ObjectId)
 case class DocumentLoaded(document: DBObject)
-case class DocumentNotFound(query: DBObject)
+case object DocumentNotFound
 
 class Mongo extends Actor {
 
@@ -36,14 +36,24 @@ class Mongo extends Actor {
       db.getCollection(collection).insert(document, SAFE)
       sender ! Inserted(document.get("_id").asInstanceOf[ObjectId])
 
-    case LoadDocument(collection, query) =>
-      db.getCollection(collection).findOne(query) match {
-        case null =>
-          sender ! DocumentNotFound(query)
+    case LoadDocument(collection, query, sort) =>
+      val coll= db.getCollection(collection)
 
-        case result: DBObject =>
-          sender ! DocumentLoaded(result)
+      // Cursor base, with the query
+      var cursor = query match {
+        case Some(q) => coll.find(q)
+        case _ => coll.find()
       }
+
+      // Apply sort criteria, if any
+      sort foreach { s => cursor = cursor.sort(s) }
+
+      cursor = cursor.limit(1)
+
+      if(cursor.hasNext)
+        sender ! DocumentLoaded(cursor.next)
+      else
+        sender ! DocumentNotFound
   }
 
 }

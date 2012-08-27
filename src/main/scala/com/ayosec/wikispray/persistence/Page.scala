@@ -7,6 +7,7 @@ import akka.util.Timeout
 import akka.util.duration._
 
 import com.mongodb.DBObject
+import com.mongodb.BasicDBObject
 import org.bson.types.ObjectId
 import org.joda.time.DateTime
 
@@ -19,6 +20,7 @@ case class Page(summary: String, content: String, date: DateTime)
 // Requests to the PersistenceActor
 case class StorePage(page: Page)
 case class LoadPage(id: ObjectId)
+case object LoadLastPage
 
 // Response
 case class StoredPage(page: Page, id: ObjectId)
@@ -53,10 +55,23 @@ class PersistenceActor extends Actor {
   def load(pageId: ObjectId, requester: ActorRef) = {
     ask(
       context.system.actorFor("/user/mongo"),
-      LoadDocument(collection, id === pageId)
+      LoadDocument(collection, query = Some((id === pageId) :DBObject))
     ) onSuccess {
-      case DocumentNotFound(_) =>
+      case DocumentNotFound =>
         requester ! PageNotFound(pageId)
+
+      case DocumentLoaded(summary(s) ~ content(c) ~ date(d)) =>
+        requester ! LoadedPage(Page(s, c, d))
+    }
+  }
+
+  def loadLast(requester: ActorRef) = {
+    ask(
+      context.system.actorFor("/user/mongo"),
+      LoadDocument(collection, sort = Some(new BasicDBObject {{ put("_id", -1) }}))
+    ) onSuccess {
+      case DocumentNotFound =>
+        requester ! PageNotFound(new ObjectId("000000000000000000000000"))
 
       case DocumentLoaded(summary(s) ~ content(c) ~ date(d)) =>
         requester ! LoadedPage(Page(s, c, d))
@@ -66,5 +81,6 @@ class PersistenceActor extends Actor {
   def receive = {
     case StorePage(page) => save(page, sender)
     case LoadPage(id) => load(id, sender)
+    case LoadLastPage => loadLast(sender)
   }
 }
