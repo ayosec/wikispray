@@ -27,6 +27,7 @@ trait PagesService extends Directives with JsonSupport {
 
     pathPrefix("pages") {
       path("[0123456789abcdefABCDEF]{24}".r) { pageId =>
+        // TODO load the page right here? and use spray/detach
         get { ctx =>
           // Read the page
           ask(persistenceActor, LoadPage(new ObjectId(pageId))) map {
@@ -46,6 +47,12 @@ trait PagesService extends Directives with JsonSupport {
                 case PageUpdated => ctx.complete("Ok")
                 case x => ctx.complete(HttpResponse(StatusCodes.NotFound))
               }
+            }
+          } ~
+          delete { ctx =>
+            ask(persistenceActor, DeletePage(new ObjectId(pageId))) map {
+              case PageDeleted => ctx.complete("Ok")
+              case x => ctx.complete(HttpResponse(StatusCodes.NotFound))
             }
           }
         }

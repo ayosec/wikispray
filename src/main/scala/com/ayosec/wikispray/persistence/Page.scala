@@ -20,6 +20,7 @@ case class Page(summary: String, content: String, date: DateTime)
 // Requests to the PersistenceActor
 case class StorePage(page: Page)
 case class LoadPage(id: ObjectId)
+case class DeletePage(id: ObjectId)
 case class UpdatePage(id: ObjectId, summary: Option[String], content: Option[String], date: Option[DateTime])
 case object LoadLastPage
 
@@ -28,6 +29,7 @@ case class StoredPage(page: Page, id: ObjectId)
 case class LoadedPage(page: Page)
 case object PageNotFound
 case object PageUpdated
+case object PageDeleted
 
 class PersistenceActor extends Actor {
 
@@ -98,10 +100,21 @@ class PersistenceActor extends Actor {
     }
   }
 
+  def delete(pageId: ObjectId, requester: ActorRef) = {
+    ask(
+      context.system.actorFor("/user/mongo"),
+      DeleteDocument(collection, pageId)
+    ) onSuccess {
+      case Deleted => requester ! PageDeleted
+      case DocumentNotFound => requester ! PageNotFound
+    }
+  }
+
   def receive = {
     case StorePage(page) => save(page, sender)
     case LoadPage(id) => load(id, sender)
     case LoadLastPage => loadLast(sender)
     case UpdatePage(id, summary, content, date) => update(id, summary, content, date, sender)
+    case DeletePage(id) => delete(id, sender)
   }
 }

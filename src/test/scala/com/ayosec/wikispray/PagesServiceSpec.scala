@@ -13,7 +13,7 @@ import cc.spray.http._
 import cc.spray.typeconversion._
 import cc.spray.test.SprayTest
 import cc.spray.http.HttpHeaders.Authorization
-import cc.spray.http.HttpMethods.{GET, POST}
+import cc.spray.http.HttpMethods.{GET, POST, DELETE}
 import cc.spray.AuthenticationRequiredRejection
 import cc.spray.AuthorizationFailedRejection
 
@@ -73,6 +73,16 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
       result.rejections.head must beOfType[AuthenticationRequiredRejection]
     }
 
+    "not be able to delete a page" in {
+      val pageId = newPageId()
+      val result = request(DELETE, "/pages/" + pageId)
+
+      result.handled must be (false)
+
+      persistenceActor ! LoadPage(pageId)
+      expectMsgClass(classOf[LoadedPage])
+    }
+
     "see a 404 when the page does not exist" in {
       val response = request(GET, "/pages/000000000000000000000000").response
       response.status.value must equal (404)
@@ -122,7 +132,27 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     }
 
     "be able to delete a page" in {
-      pending
+      val pageId = newPageId()
+
+      persistenceActor ! LoadPage(pageId)
+      expectMsgClass(classOf[LoadedPage])
+
+      val result = request(DELETE, "/pages/" + pageId,
+        headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
+
+      result.handled must be (true)
+      result.response.status.value must equal (200)
+
+      // Check if the page was updated
+      persistenceActor ! LoadPage(pageId)
+      expectMsg(PageNotFound)
+    }
+
+    "see a 404 when the delete page does not exist" in {
+      val result = request(DELETE, "/pages/000000000000000000000000",
+        headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
+
+      result.response.status.value must equal (404)
     }
   }
 
