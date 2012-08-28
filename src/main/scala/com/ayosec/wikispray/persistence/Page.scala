@@ -26,7 +26,7 @@ case object LoadLastPage
 // Response
 case class StoredPage(page: Page, id: ObjectId)
 case class LoadedPage(page: Page)
-case class PageNotFound(id: ObjectId)
+case object PageNotFound
 case object PageUpdated
 
 class PersistenceActor extends Actor {
@@ -62,7 +62,7 @@ class PersistenceActor extends Actor {
       LoadDocument(collection, query = Some((fields.id === pageId) :DBObject))
     ) onSuccess {
       case DocumentNotFound =>
-        requester ! PageNotFound(pageId)
+        requester ! PageNotFound
 
       case DocumentLoaded(fields.summary(s) ~ fields.content(c) ~ fields.date(d)) =>
         requester ! LoadedPage(Page(s, c, d))
@@ -75,7 +75,7 @@ class PersistenceActor extends Actor {
       LoadDocument(collection, sort = Some(new BasicDBObject {{ put("_id", -1) }}))
     ) onSuccess {
       case DocumentNotFound =>
-        requester ! PageNotFound(new ObjectId("000000000000000000000000"))
+        requester ! PageNotFound
 
       case DocumentLoaded(fields.summary(s) ~ fields.content(c) ~ fields.date(d)) =>
         requester ! LoadedPage(Page(s, c, d))

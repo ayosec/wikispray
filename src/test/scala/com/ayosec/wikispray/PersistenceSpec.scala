@@ -52,7 +52,7 @@ class PersistenceSpec (_system: ActorSystem) extends TestKit(_system)
   "The actor" should {
     "return a PageNotFound when the page doesn't exist" in {
       persistenceActor ! LoadPage(new ObjectId)
-      expectMsgClass(classOf[PageNotFound])
+      expectMsg(PageNotFound)
     }
   }
 }
