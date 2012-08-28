@@ -58,17 +58,24 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     }
 
     "not be able to create a page" in {
-      val result = request(POST, "/pages/" + newPageId())
+      val result = request(POST, "/pages")
       result.handled must be (false)
       result.rejections.head must beOfType[AuthenticationRequiredRejection]
     }
 
     "not be able to modify a page" in {
-      pending
+      val pageId = newPageId()
+
+      val result = request(POST, "/pages/" + pageId,
+        params = Some(Map("summary" -> "new summary", "content" -> "new content")))
+
+      result.handled must be (false)
+      result.rejections.head must beOfType[AuthenticationRequiredRejection]
     }
 
     "see a 404 when the page does not exist" in {
-      pending
+      val response = request(GET, "/pages/000000000000000000000000").response
+      response.status.value must equal (404)
     }
   }
 
@@ -103,6 +110,14 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
       newPage.summary must equal ("new summary")
       newPage.content must equal ("new content")
       newPage.date.getYear must equal (2010)
+    }
+
+    "see a 404 when the updated page does not exist" in {
+      val result = request(POST, "/pages/000000000000000000000000",
+        params = Some(Map("summary" -> "new summary")),
+        headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
+
+      result.response.status.value must equal (404)
     }
 
     "be able to delete a page" in {

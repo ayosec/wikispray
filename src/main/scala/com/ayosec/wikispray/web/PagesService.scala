@@ -2,6 +2,7 @@ package com.ayosec.wikispray.web
 
 import cc.spray._
 import cc.spray.json._
+import cc.spray.http.{HttpResponse, StatusCodes}
 
 import com.ayosec.wikispray.persistence._
 
@@ -10,6 +11,7 @@ import akka.dispatch.Promise
 import akka.actor.{ActorSystem, Actor, Props}
 import org.bson.types.ObjectId
 import org.joda.time.DateTime
+import cc.spray.AuthenticationFailedRejection
 
 trait PagesService extends Directives with JsonSupport {
 
@@ -25,13 +27,15 @@ trait PagesService extends Directives with JsonSupport {
 
     pathPrefix("pages") {
       path("[0123456789abcdefABCDEF]{24}".r) { pageId =>
-        get {
+        get { ctx =>
           // Read the page
-          _.complete(
-            ask(persistenceActor, LoadPage(new ObjectId(pageId))) map {
-              case LoadedPage(page) => page
-            }
-          )
+          ask(persistenceActor, LoadPage(new ObjectId(pageId))) map {
+            case LoadedPage(page) =>
+              ctx.complete(page)
+
+            case PageNotFound =>
+              ctx.complete(HttpResponse(StatusCodes.NotFound))
+          }
         } ~
         post {
           hasUser { user =>
@@ -63,7 +67,8 @@ trait PagesService extends Directives with JsonSupport {
     }
   }
 
-  def hasUser = authenticate(
+
+  lazy val hasUser = authenticate(
     httpBasic(
       authenticator = { user =>
         Promise.successful(
@@ -75,4 +80,5 @@ trait PagesService extends Directives with JsonSupport {
       }
     )
   )
+
 }
