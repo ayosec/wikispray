@@ -42,8 +42,11 @@ class Mongo extends Actor {
       val query = new BasicDBObjectBuilder().add("_id", id).get
       val document = new BasicDBObjectBuilder().add("$set", changes).get
 
-      db.getCollection(collection).update(query, document, false, false, SAFE)
-      sender ! Updated
+      val result = db.getCollection(collection).update(query, document, false, false, SAFE)
+      if(result.getField("updatedExisting") == true)
+        sender ! Updated
+      else
+        sender ! DocumentNotFound
 
     case LoadDocument(collection, query, sort) =>
       val coll= db.getCollection(collection)

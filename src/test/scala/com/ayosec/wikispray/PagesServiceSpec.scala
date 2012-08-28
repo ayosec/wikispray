@@ -103,6 +103,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
         headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
 
       result.handled must be (true)
+      result.response.status.value must equal (200)
 
       // Check if the page was updated
       persistenceActor ! LoadPage(pageId)

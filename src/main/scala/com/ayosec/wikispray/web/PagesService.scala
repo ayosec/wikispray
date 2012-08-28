@@ -37,16 +37,14 @@ trait PagesService extends Directives with JsonSupport {
               ctx.complete(HttpResponse(StatusCodes.NotFound))
           }
         } ~
-        post {
-          hasUser { user =>
-            formFields('summary ?, 'content ?, 'date ?) { (summary, content, date) =>
+        hasUser { user =>
+          formFields('summary ?, 'content ?, 'date ?) { (summary, content, date) =>
+            post { ctx =>
               // Update the page
               val newDate = date map { d => new DateTime(d) }
-              completeWith {
-                ask(persistenceActor, UpdatePage(new ObjectId(pageId), summary, content, newDate)) map {
-                  case Updated => "Ok"
-                  case DocumentNotFound => "NO"
-                }
+              ask(persistenceActor, UpdatePage(new ObjectId(pageId), summary, content, newDate)) map {
+                case PageUpdated => ctx.complete("Ok")
+                case x => ctx.complete(HttpResponse(StatusCodes.NotFound))
               }
             }
           }
