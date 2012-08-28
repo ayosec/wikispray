@@ -1,7 +1,7 @@
 package com.ayosec.wikispray.persistence
 
 import akka.actor.Actor
-import com.mongodb.DBObject
+import com.mongodb.{DBObject, BasicDBObjectBuilder}
 import com.mongodb.WriteConcern.SAFE
 import org.bson.types.ObjectId
 
@@ -9,12 +9,14 @@ import org.bson.types.ObjectId
 case class Connect(uri: String)
 case class DropCollection(collection: String)
 case class InsertDocument(collection: String, document: DBObject)
+case class UpdateDocument(collection: String, id: ObjectId, changes: DBObject)
 case class LoadDocument(collection: String, query: Option[DBObject] = None, sort: Option[DBObject] = None)
 
 // Responses
 case class Connected(uri: String)
 case class CollectionDropped(collection: String)
 
+case object Updated
 case class Inserted(id: ObjectId)
 case class DocumentLoaded(document: DBObject)
 case object DocumentNotFound
@@ -35,6 +37,13 @@ class Mongo extends Actor {
     case InsertDocument(collection, document) =>
       db.getCollection(collection).insert(document, SAFE)
       sender ! Inserted(document.get("_id").asInstanceOf[ObjectId])
+
+    case UpdateDocument(collection, id, changes) =>
+      val query = new BasicDBObjectBuilder().add("_id", id).get
+      val document = new BasicDBObjectBuilder().add("$set", changes).get
+
+      db.getCollection(collection).update(query, document, false, false, SAFE)
+      sender ! Updated
 
     case LoadDocument(collection, query, sort) =>
       val coll= db.getCollection(collection)

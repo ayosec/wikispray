@@ -40,12 +40,12 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     test(HttpRequest( method, uri, content = params map { _.toHttpContent }, headers = headers)) { routes }
   }
 
-  def newPageId = storePage(Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0)))
+  def newPageId() = storePage(Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0)))
 
   "An anonymous user" should {
     "see a page" in {
 
-      val response = request(GET, "/pages/" + newPageId).response
+      val response = request(GET, "/pages/" + newPageId()).response
       response.status.value must equal (200)
 
       response.content flatMap { _.contentType.charset } map { _.value } must equal (Some("UTF-8"))
@@ -58,9 +58,17 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     }
 
     "not be able to create a page" in {
-      val result = request(POST, "/pages/" + newPageId)
+      val result = request(POST, "/pages/" + newPageId())
       result.handled must be (false)
       result.rejections.head must beOfType[AuthenticationRequiredRejection]
+    }
+
+    "not be able to modify a page" in {
+      pending
+    }
+
+    "see a 404 when the page does not exist" in {
+      pending
     }
   }
 
@@ -81,7 +89,20 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     }
 
     "be able to update an existing page" in {
-      pending
+      val pageId = newPageId()
+
+      val result = request(POST, "/pages/" + pageId,
+        params = Some(Map("summary" -> "new summary", "content" -> "new content")),
+        headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
+
+      result.handled must be (true)
+
+      // Check if the page was updated
+      persistenceActor ! LoadPage(pageId)
+      val newPage = expectMsgClass(classOf[LoadedPage]).page
+      newPage.summary must equal ("new summary")
+      newPage.content must equal ("new content")
+      newPage.date.getYear must equal (2010)
     }
 
     "be able to delete a page" in {
