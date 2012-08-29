@@ -31,6 +31,8 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
 
   def this() = this(ActorSystem("PagesServiceSpec"))
 
+  override val actorSystem = system
+
   def request(
     method: HttpMethod,
     uri: String,

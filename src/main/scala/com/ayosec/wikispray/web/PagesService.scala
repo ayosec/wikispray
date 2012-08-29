@@ -16,9 +16,9 @@ import cc.spray.AuthenticationFailedRejection
 
 trait PagesService extends Directives with SprayJsonSupport {
 
-  val system: ActorSystem
+  implicit val actorSystem: ActorSystem
 
-  lazy val persistenceActor = system.actorOf(Props[PersistenceActor])
+  lazy val persistenceActor = actorSystem.actorOf(Props[PersistenceActor])
 
   val routes = {
 
@@ -92,7 +92,7 @@ trait PagesService extends Directives with SprayJsonSupport {
         route(page)(ctx)
 
       case PageNotFound =>
-        ctx complete HttpResponse(StatusCodes.NotFound)
+        ctx complete HttpResponse(StatusCodes.NotFound, content = "Object not found")
     }
   }
 
