@@ -3,6 +3,7 @@ package com.ayosec.wikispray.web
 import cc.spray._
 import cc.spray.json._
 import cc.spray.http.{HttpResponse, StatusCodes}
+import cc.spray.typeconversion._
 
 import com.ayosec.wikispray.persistence._
 
@@ -13,7 +14,7 @@ import org.bson.types.ObjectId
 import org.joda.time.DateTime
 import cc.spray.AuthenticationFailedRejection
 
-trait PagesService extends Directives with JsonSupport {
+trait PagesService extends Directives with SprayJsonSupport {
 
   val system: ActorSystem
 
