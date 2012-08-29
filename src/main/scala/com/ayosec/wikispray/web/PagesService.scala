@@ -27,13 +27,10 @@ trait PagesService extends Directives with JsonSupport {
 
     pathPrefix("pages") {
       path("[0123456789abcdefABCDEF]{24}".r) { pageId =>
-        withPage(pageId) { page =>
-          get { ctx =>
+        get {
+          withPage(pageId) { page =>
             // Read the page
-            page map {
-              case Some(page) =>  ctx.complete(page)
-              case None => ctx.complete(HttpResponse(StatusCodes.NotFound))
-            }
+            completeWith { page }
           }
         } ~
         hasUser { user =>
@@ -83,18 +80,19 @@ trait PagesService extends Directives with JsonSupport {
     )
   )
 
-  def withPage(id: String) = filter1 { ctx =>
+  def withPage(id: String): (Page => Route) => Route = { route => ctx =>
     implicit val timeout = akka.util.Timeout(3000)
 
-    Pass(
-      ask(
-        persistenceActor,
-        LoadPage(new ObjectId(id))
-      ) map {
-        case LoadedPage(page) => Some(page)
-        case PageNotFound     => None
-      }
-    )
+    ask(
+      persistenceActor,
+      LoadPage(new ObjectId(id))
+    ) map {
+      case LoadedPage(page) =>
+        route(page)(ctx)
+
+      case PageNotFound =>
+        ctx complete HttpResponse(StatusCodes.NotFound)
+    }
   }
 
 }
