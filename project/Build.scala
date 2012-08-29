@@ -24,7 +24,7 @@ object GrapheneBuild extends Build {
       compile(spray: _*) ++
       compile(pegdown, subset, jodaTime) ++
       provided(jodaConvert) ++
-      test(scalatest, akkaTestKit)
-    )
+      test(scalatest, akkaTestKit))
+    .settings(sbtassembly.Plugin.assemblySettings: _*)
 
 }
