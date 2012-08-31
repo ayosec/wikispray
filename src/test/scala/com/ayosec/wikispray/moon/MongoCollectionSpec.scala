@@ -92,6 +92,23 @@ class MoonCollectionSpec extends WordSpec
       sync(coll.count(name("bar"))) must be (1)
     }
 
+    "return the last document" in {
+      val coll = moon("things")
+
+      // Create some documents
+      val docA = sync(coll.insert(name("a")))
+      val docB = sync(coll.insert(name("b")))
+      val docC = sync(coll.insert(name("c")))
+
+      // and modify one of them (natural sort will be different)
+      val doc = sync(coll.findById(docB))
+      doc.write("age", 10)
+      sync(doc.save())
+
+      // Finally, the last document (by id) should be docC
+      sync(coll.last()).read[String]("name") must be (Some("c"))
+    }
+
     "create a document from a moon collection" in {
       val coll = moon("things")
       val doc = coll.build()
