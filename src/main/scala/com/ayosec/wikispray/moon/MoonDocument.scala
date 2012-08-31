@@ -41,4 +41,8 @@ class MoonDocument private[moon] (collection: MoonCollection, dbObject: DBObject
     }
   }
 
+  def id = dbObject.get("_id").asInstanceOf[ObjectId]
+
+  def destroy() = collection.destroy(new BasicDBObjectBuilder().add("_id", id).get)
+
 }

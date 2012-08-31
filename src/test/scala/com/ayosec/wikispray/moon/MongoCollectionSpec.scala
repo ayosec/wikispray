@@ -103,5 +103,13 @@ class MoonCollectionSpec extends WordSpec
 
       sync(coll.count(name("new name"))) must be (1)
     }
+
+    "delete an existing document" in {
+      val coll = moon("things")
+      val id = sync(coll.insert(name("a") ~ age(1)))
+
+      val doc = sync(coll.findById(id))
+      sync(doc.destroy()) must be (true)
+    }
   }
 }

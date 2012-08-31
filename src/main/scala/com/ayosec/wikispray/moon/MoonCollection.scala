@@ -32,6 +32,10 @@ class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollect
     new MoonDocument(this, dbobject getOrElse { new BasicDBObject })
   }
 
+  def destroy(query: DBObject) = Future {
+    dbCollection.remove(query, SAFE).getField("n") == 1
+  }
+
   def count = Future { dbCollection.count() }
   def count(query: DBObject) = Future { dbCollection.count(query) }
 
