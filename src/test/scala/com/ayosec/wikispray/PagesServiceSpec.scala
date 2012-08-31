@@ -1,11 +1,16 @@
 package com.ayosec.wikispray
 
 import org.scalatest._
+
 import web._
-import persistence._
+import moon.MoonDB
+import moon.MoonCollection
 
 import akka.testkit._
 import akka.actor.ActorSystem
+import akka.dispatch.Await
+import akka.dispatch.Future
+import akka.util.duration._
 import org.joda.time.DateTime
 
 import cc.spray.json._
@@ -26,12 +31,25 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
   with ExtraMatchers
   with POSTParameters
   with SprayTest with PagesService
-  with TestMongo
 {
 
   def this() = this(ActorSystem("PagesServiceSpec"))
 
   override val actorSystem = system
+
+  val moon = MoonDB("mongodb://localhost/wikispray-PagesServiceSpec")
+
+  override def beforeEach {
+    super.beforeEach()
+
+    for(coll <- moon.collections if coll.name != "system.indexes") {
+      sync(coll.drop())
+    }
+  }
+
+
+  // This helper method is used to get the result of a future is a short form
+  def sync[T](future: Future[T]) = Await.result(future, 2 seconds)
 
   def request(
     method: HttpMethod,
@@ -42,7 +60,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     test(HttpRequest( method, uri, content = params map { _.toHttpContent }, headers = headers)) { routes }
   }
 
-  def newPageId() = storePage(Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0)))
+  def newPageId() = sync(pages.insert(Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0)).toDB))
 
   "An anonymous user" should {
     "see a page" in {
@@ -81,8 +99,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
 
       result.handled must be (false)
 
-      persistenceActor ! LoadPage(pageId)
-      expectMsgClass(classOf[LoadedPage])
+      sync(pages.findById(pageId)) must not (beOfType[MoonCollection])
     }
 
     "see a 404 when the page does not exist" in {
@@ -100,11 +117,10 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
       result.handled must be (true)
 
       // Check if the page was created
-      persistenceActor ! LoadLastPage
-      val newPage = expectMsgClass(classOf[LoadedPage]).page
-      newPage.summary must equal ("a summary")
-      newPage.content must equal ("more content")
-      newPage.date.getYear must equal (2010)
+      val doc = sync(pages.last())
+      doc.read[String]("summary").get must equal ("a summary")
+      doc.read[String]("content").get must equal ("more content")
+      new DateTime(doc.read[String]("date").get).getYear must equal (2010)
     }
 
     "be able to update an existing page" in {
@@ -118,11 +134,10 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
       result.response.status.value must equal (200)
 
       // Check if the page was updated
-      persistenceActor ! LoadPage(pageId)
-      val newPage = expectMsgClass(classOf[LoadedPage]).page
-      newPage.summary must equal ("new summary")
-      newPage.content must equal ("new content")
-      newPage.date.getYear must equal (2010)
+      val doc = sync(pages.findById(pageId))
+      doc.read[String]("summary").get must equal ("new summary")
+      doc.read[String]("content").get must equal ("new content")
+      new DateTime(doc.read[String]("date").get).getYear must equal (2010)
     }
 
     "see a 404 when the updated page does not exist" in {
@@ -136,8 +151,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     "be able to delete a page" in {
       val pageId = newPageId()
 
-      persistenceActor ! LoadPage(pageId)
-      expectMsgClass(classOf[LoadedPage])
+      sync(pages.count) must be (1)
 
       val result = request(DELETE, "/pages/" + pageId,
         headers = List(Authorization(BasicHttpCredentials("admin", "pw"))))
@@ -145,9 +159,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
       result.handled must be (true)
       result.response.status.value must equal (200)
 
-      // Check if the page was updated
-      persistenceActor ! LoadPage(pageId)
-      expectMsg(PageNotFound)
+      sync(pages.count) must be (0)
     }
 
     "see a 404 when the delete page does not exist" in {

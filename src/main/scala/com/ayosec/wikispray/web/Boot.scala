@@ -1,6 +1,6 @@
 package com.ayosec.wikispray.web
 
-import com.ayosec.wikispray.persistence._
+import com.ayosec.wikispray.moon.MoonDB
 import cc.spray.io.pipelines.MessageHandlerDispatch
 import cc.spray.io.IoWorker
 import cc.spray.can.server.HttpServer
@@ -11,10 +11,13 @@ object Boot extends App {
   // we need an ActorSystem to host our application in
   val system = ActorSystem("Wikispray")
 
-  system.actorOf(Props[Mongo], name = "mongo") ! Connect("mongodb://localhost/wikispray-devel")
+  val moondb = MoonDB("mongodb://localhost/wikispray-devel")
 
   val service = system.actorOf(
-    props = Props(new HttpService(new PagesService { val actorSystem = system }.routes)),
+    props = Props(new HttpService(new PagesService {
+      val actorSystem = system
+      val moon = moondb
+    }.routes)),
     name = "pages"
   )
 

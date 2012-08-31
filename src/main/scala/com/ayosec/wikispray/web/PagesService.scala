@@ -5,8 +5,6 @@ import cc.spray.json._
 import cc.spray.http.{HttpResponse, StatusCodes}
 import cc.spray.typeconversion._
 
-import com.ayosec.wikispray.persistence._
-
 import akka.pattern.ask
 import akka.dispatch.Promise
 import akka.actor.{ActorSystem, Actor, Props}
@@ -14,11 +12,27 @@ import org.bson.types.ObjectId
 import org.joda.time.DateTime
 import cc.spray.AuthenticationFailedRejection
 
+import com.ayosec.wikispray.moon.MoonDB
+import com.ayosec.wikispray.moon.MoonDocument
+import com.ayosec.wikispray.moon.DocumentNotFound
+
+case class Page(summary: String, content: String, date: DateTime) {
+
+  def toDB = new com.mongodb.BasicDBObjectBuilder()
+    .add("summary", summary)
+    .add("content", content)
+    .add("date", date.toString())
+    .get
+
+}
+
 trait PagesService extends Directives with SprayJsonSupport {
 
   implicit val actorSystem: ActorSystem
 
-  lazy val persistenceActor = actorSystem.actorOf(Props[PersistenceActor])
+  val moon: MoonDB
+
+  lazy val pages = moon("pages")
 
   val routes = {
 
@@ -28,27 +42,31 @@ trait PagesService extends Directives with SprayJsonSupport {
 
     pathPrefix("pages") {
       path("[0123456789abcdefABCDEF]{24}".r) { pageId =>
-        get {
-          withPage(pageId) { page =>
+        withPage(pageId) { document =>
+          get {
             // Read the page
-            completeWith { page }
-          }
-        } ~
-        hasUser { user =>
-          formFields('summary ?, 'content ?, 'date ?) { (summary, content, date) =>
-            post { ctx =>
-              // Update the page
-              val newDate = date map { d => new DateTime(d) }
-              ask(persistenceActor, UpdatePage(new ObjectId(pageId), summary, content, newDate)) map {
-                case PageUpdated => ctx.complete("Ok")
-                case x => ctx.complete(HttpResponse(StatusCodes.NotFound))
-              }
+            completeWith {
+              Page(
+                document.read[String]("summary") getOrElse "",
+                document.read[String]("content") getOrElse "",
+                document.read[String]("date") map { new DateTime(_) } getOrElse (new DateTime))
             }
           } ~
-          delete { ctx =>
-            ask(persistenceActor, DeletePage(new ObjectId(pageId))) map {
-              case PageDeleted => ctx.complete("Ok")
-              case x => ctx.complete(HttpResponse(StatusCodes.NotFound))
+          hasUser { user =>
+            formFields('summary ?, 'content ?, 'date ?) { (summary, content, date) =>
+              post { ctx =>
+                // Update the page
+
+                summary foreach { s => document.write("summary", s) }
+                content foreach { c => document.write("content", c) }
+                date    foreach { d => document.write("date", new DateTime(d)) }
+
+                document.save() map { result => ctx complete { if(result) "Ok" else "Fail" } }
+              }
+            } ~
+            delete { ctx =>
+              // Delete the page
+              document.destroy() map { result => ctx complete { if(result) "Ok" else "Fail" } }
             }
           }
         }
@@ -56,12 +74,14 @@ trait PagesService extends Directives with SprayJsonSupport {
       post {
         hasUser { user =>
           formFields('summary, 'content, 'date) { (summary, content, date) =>
-            // Create a new page
-            _.complete(
-              ask(persistenceActor, StorePage(Page(summary, content, new DateTime(date)))) map {
-                case StoredPage(_, id) => Map("id" -> id.toString).toJson.toString
-              }
-            )
+            val doc = pages.build()
+            doc.write("summary", summary)
+            doc.write("content", content)
+            doc.write("date", new DateTime(date).toString())
+
+            completeWith {
+              doc.save() map { id => Map("id" -> id.toString).toJson.toString }
+            }
           }
         }
       }
@@ -81,17 +101,12 @@ trait PagesService extends Directives with SprayJsonSupport {
     )
   )
 
-  def withPage(id: String): (Page => Route) => Route = { route => ctx =>
-    implicit val timeout = akka.util.Timeout(3000)
+  def withPage(id: String): (MoonDocument => Route) => Route = { route => ctx =>
 
-    ask(
-      persistenceActor,
-      LoadPage(new ObjectId(id))
-    ) map {
-      case LoadedPage(page) =>
-        route(page)(ctx)
-
-      case PageNotFound =>
+    pages.findById(id) map { document =>
+      route(document)(ctx)
+    } recover {
+      case _: DocumentNotFound => 
         ctx complete HttpResponse(StatusCodes.NotFound, content = "Object not found")
     }
   }

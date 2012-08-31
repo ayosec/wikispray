@@ -6,8 +6,8 @@ import org.joda.time.DateTime
 
 class PagesJsonSpec extends WordSpec with MustMatchers {
 
-  import persistence.Page
-  import persistence.PageJsonProtocol._
+  import web.Page
+  import web.PageJsonProtocol._
 
   "A page" must {
     "be dumped in JSON" in {

@@ -1,4 +1,4 @@
-package com.ayosec.wikispray.persistence
+package com.ayosec.wikispray.web
 
 import cc.spray.json._
 import org.joda.time.DateTime
