@@ -109,6 +109,14 @@ class MoonCollectionSpec extends WordSpec
       sync(coll.last()).read[String]("name") must be (Some("c"))
     }
 
+    "return an error when there is no last page" in {
+      val coll = moon("things")
+      sync(coll.count) must be (0)
+      sync(
+        coll.last() map { doc => false } recover { case _: DocumentNotFound => true }
+      ) must be (true)
+    }
+
     "create a document from a moon collection" in {
       val coll = moon("things")
       val doc = coll.build()

@@ -40,8 +40,11 @@ class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollect
   def count(query: DBObject) = Future { dbCollection.count(query) }
 
   def last() = Future {
-    val doc = dbCollection.find().sort(new BasicDBObjectBuilder().add("_id", -1).get).limit(1).next()
-    new MoonDocument(this, doc)
+    val cursor = dbCollection.find().sort(new BasicDBObjectBuilder().add("_id", -1).get).limit(1)
+    if(cursor.hasNext)
+      new MoonDocument(this, cursor.next)
+    else
+      throw new DocumentNotFound(this, null)
   }
 
   def findById(id: String): Future[MoonDocument] = findById(new ObjectId(id))
