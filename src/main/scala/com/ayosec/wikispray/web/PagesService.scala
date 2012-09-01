@@ -80,7 +80,7 @@ trait PagesService extends Directives with SprayJsonSupport {
             doc.write("date", new DateTime(date).toString())
 
             completeWith {
-              doc.save() map { id => Map("id" -> id.toString).toJson.toString }
+              doc.save() map { id => Map("id" -> doc.id.toString).toJson.toString }
             }
           }
         }
