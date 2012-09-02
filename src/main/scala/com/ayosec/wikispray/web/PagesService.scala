@@ -16,16 +16,6 @@ import com.ayosec.wikispray.moon.MoonDB
 import com.ayosec.wikispray.moon.MoonDocument
 import com.ayosec.wikispray.moon.DocumentNotFound
 
-case class Page(summary: String, content: String, date: DateTime) {
-
-  def toDB = new com.mongodb.BasicDBObjectBuilder()
-    .add("summary", summary)
-    .add("content", content)
-    .add("date", date.toString())
-    .get
-
-}
-
 trait PagesService extends Directives with SprayJsonSupport {
 
   implicit val actorSystem: ActorSystem
@@ -42,31 +32,26 @@ trait PagesService extends Directives with SprayJsonSupport {
 
     pathPrefix("pages") {
       path("[0123456789abcdefABCDEF]{24}".r) { pageId =>
-        withPage(pageId) { document =>
+        withPage(pageId) { page =>
           get {
             // Read the page
-            completeWith {
-              Page(
-                document.read[String]("summary") getOrElse "",
-                document.read[String]("content") getOrElse "",
-                document.read[String]("date") map { new DateTime(_) } getOrElse (new DateTime))
-            }
+            completeWith { page }
           } ~
           hasUser { user =>
             formFields('summary ?, 'content ?, 'date ?) { (summary, content, date) =>
               post { ctx =>
                 // Update the page
 
-                summary foreach { s => document.write("summary", s) }
-                content foreach { c => document.write("content", c) }
-                date    foreach { d => document.write("date", new DateTime(d)) }
+                summary foreach { s => page.summary = s }
+                content foreach { c => page.content = c }
+                date    foreach { d => page.date = new DateTime(d) }
 
-                document.save() map { result => ctx complete { if(result) "Ok" else "Fail" } }
+                page.save() map { result => ctx complete { if(result) "Ok" else "Fail" } }
               }
             } ~
             delete { ctx =>
               // Delete the page
-              document.destroy() map { result => ctx complete { if(result) "Ok" else "Fail" } }
+              page.destroy() map { result => ctx complete { if(result) "Ok" else "Fail" } }
             }
           }
         }
@@ -101,10 +86,10 @@ trait PagesService extends Directives with SprayJsonSupport {
     )
   )
 
-  def withPage(id: String): (MoonDocument => Route) => Route = { route => ctx =>
+  def withPage(id: String): (Page => Route) => Route = { route => ctx =>
 
     pages.findById(id) map { document =>
-      route(document)(ctx)
+      route(document.mutate(new Page(_)))(ctx)
     } recover {
       case _: DocumentNotFound => 
         ctx complete HttpResponse(StatusCodes.NotFound, content = "Object not found")

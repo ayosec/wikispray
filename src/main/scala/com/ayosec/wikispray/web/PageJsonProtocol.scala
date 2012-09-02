@@ -5,14 +5,25 @@ import org.joda.time.DateTime
 
 object PageJsonProtocol extends DefaultJsonProtocol {
 
-  implicit object DateTimeJsonFormat extends JsonFormat[DateTime] {
-    def write(dt: DateTime) = JsString(dt.toString())
+  implicit object PageJsonFormat extends RootJsonFormat[Page] {
+    def write(c: Page) = JsObject(
+      Map(
+        "summary" -> c.summary,
+        "content" -> c.content,
+        "date" -> (c.date map { d => d.toString() })
+      ) map {
+        case (k,v) => (k, v map { JsString(_) })
+      } filterNot {
+        case (k,v) => v.isEmpty
+      } map {
+        case (k,v) => (k, v.get)
+      }
+    )
+
     def read(value: JsValue) = value match {
-      case JsString(dt) => new DateTime(dt)
-      case dt => deserializationError("Expected DateTime as JsString, but got " + dt)
+      // TODO
+      case _ => deserializationError("Not implemented")
     }
   }
-
-  implicit val pageFormat = jsonFormat3(Page)
 
 }

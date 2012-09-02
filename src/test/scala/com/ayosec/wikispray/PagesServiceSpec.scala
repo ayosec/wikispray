@@ -37,7 +37,7 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
 
   override val actorSystem = system
 
-  val moon = MoonDB("mongodb://localhost/wikispray-PagesServiceSpec")
+  implicit val moon = MoonDB("mongodb://localhost/wikispray-PagesServiceSpec")
 
   override def beforeEach {
     super.beforeEach()
@@ -60,7 +60,11 @@ class PagesServiceSpec(_system: ActorSystem) extends TestKit(_system)
     test(HttpRequest( method, uri, content = params map { _.toHttpContent }, headers = headers)) { routes }
   }
 
-  def newPageId() = sync(pages.insert(Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0)).toDB))
+  def newPageId() = {
+    val page = Page("A summary", "γειά σου", new DateTime(2010, 10, 20, 0, 0))
+    sync(page.save())
+    page.id
+  }
 
   "An anonymous user" should {
     "see a page" in {

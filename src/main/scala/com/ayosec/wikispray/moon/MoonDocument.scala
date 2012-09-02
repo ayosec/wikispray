@@ -49,4 +49,7 @@ class MoonDocument(collection: MoonCollection, dbObject: DBObject) {
 
   def destroy() = collection.destroy(new BasicDBObjectBuilder().add("_id", id).get)
 
+
+  def mutate[T](mutator: DocumentContext => T): T = mutator(DocumentContext(collection, dbObject))
+
 }
