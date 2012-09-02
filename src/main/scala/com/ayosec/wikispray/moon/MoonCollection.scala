@@ -7,8 +7,6 @@ import com.mongodb.BasicDBObjectBuilder
 import com.mongodb.WriteConcern.SAFE
 import org.bson.types.ObjectId
 
-class DocumentNotFound(val collection: MoonCollection, val query: DBObject) extends MoonError
-
 class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollection) {
 
   implicit val system = moonDB.system
@@ -29,7 +27,7 @@ class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollect
   def drop() = Future { dbCollection.drop() }
 
   def build(dbobject: Option[BasicDBObject] = None) = {
-    new MoonDocument(this, dbobject getOrElse { new BasicDBObject })
+    new MoonDocument(DocumentContext(this, dbobject getOrElse { new BasicDBObject }))
   }
 
   def destroy(query: DBObject) = Future {
@@ -42,7 +40,7 @@ class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollect
   def last() = Future {
     val cursor = dbCollection.find().sort(new BasicDBObjectBuilder().add("_id", -1).get).limit(1)
     if(cursor.hasNext)
-      new MoonDocument(this, cursor.next)
+      new MoonDocument(DocumentContext(this, cursor.next))
     else
       throw new DocumentNotFound(this, null)
   }
@@ -53,7 +51,7 @@ class MoonCollection(val moonDB: MoonDB, val dbCollection: com.mongodb.DBCollect
     val query = new BasicDBObjectBuilder().add("_id", id).get
     dbCollection.findOne(query) match {
       case null => throw new DocumentNotFound(this, query)
-      case doc: DBObject => new MoonDocument(this, doc)
+      case doc: DBObject => new MoonDocument(DocumentContext(this, doc))
     }
   }
 }

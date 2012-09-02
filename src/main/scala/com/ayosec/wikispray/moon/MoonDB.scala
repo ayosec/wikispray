@@ -5,8 +5,6 @@ import akka.actor.ActorSystem
 
 import collection.JavaConversions._
 
-class MoonError extends Exception
-
 object MoonDB {
   def apply(uri: String) = new MoonDB(uri, ActorSystem())
   def apply(uri: String, system: ActorSystem) = new MoonDB(uri, system)

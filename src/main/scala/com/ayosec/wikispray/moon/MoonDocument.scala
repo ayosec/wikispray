@@ -7,7 +7,11 @@ import com.mongodb.BasicDBObjectBuilder
 import org.bson.types.ObjectId
 import collection.JavaConversions._
 
-class MoonDocument private[moon] (collection: MoonCollection, dbObject: DBObject) {
+case class DocumentContext(collection: MoonCollection, dbObject: DBObject)
+
+class MoonDocument(collection: MoonCollection, dbObject: DBObject) {
+
+  def this(context: DocumentContext) = this(context.collection, context.dbObject)
 
   private lazy val changesToSet = new BasicDBObject
 
